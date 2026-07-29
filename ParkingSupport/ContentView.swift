@@ -27,20 +27,27 @@ struct ContentView: View {
         
         let remainingMinutes = (hours * 60) - elapsedMinutes
         
-        VStack {
-           // feeを整数に変換して、¥マークと一緒に大きな文字で表示
-           Text("¥\(Int(fee))")
-                .font(.system(size: 48, weight: .bold))
-            // 時刻選択UI。selection: $entryTime で、選んだ時刻がentryTimeに反映される
+        ZStack {
+            Color.black.ignoresSafeArea()
             
-            Text("次の段階まであと\(Int(remainingMinutes))分")
-            // $をつけることで「entryTimeと値を連動(バインディング)させる」という意味になる
-            DatePicker("入庫時間", selection: $entryTime)
+            VStack {
+                // feeを整数に変換して、¥マークと一緒に大きな文字で表示
+                Text("¥\(Int(fee))")
+                    .font(.system(size: 48, weight: .bold))
+                // 時刻選択UI。selection: $entryTime で、選んだ時刻がentryTimeに反映される
+                
+                Text("次の段階まであと\(Int(remainingMinutes))分")
+                // $をつけることで「entryTimeと値を連動(バインディング)させる」という意味になる
+                DatePicker("入庫時間", selection: $entryTime)
+                    .tint(Color.white)
+            }
+            .padding()
+            .foregroundStyle(Color.white)
         }
-        .padding()
+        .preferredColorScheme(.dark)
     }
 }
-
 #Preview {
-    ContentView()
-}
+        ContentView()
+    }
+

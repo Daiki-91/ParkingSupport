@@ -12,20 +12,32 @@ struct ContentView: View {
     // private: このView(ContentView)の中だけで使う変数、という制限
     @State private var entryTime = Date()   // 入庫時刻(初期値は今の時刻)
     
-    var ratePerHour = 200  // 1時間あたりの料金(円)
+    @State private var adjustmentMinutes: Double = 0  // 補正分数(-15〜+15分を想定)
+    @State private var showAlert = false
+    
     
     var body: some View {
         let now = Date()  // 現在時刻を取得
         // entryTime(入庫時刻)からnow(現在時刻)までの経過時間を「秒」で計算
         let elapsedSeconds = now.timeIntervalSince(entryTime)
         // 秒を分に変換(60秒 = 1分)
-        let elapsedMinutes = elapsedSeconds / 60
+        let elapsedMinutes = elapsedSeconds / 60 + adjustmentMinutes
         // 分を時間に変換し、切り上げる(例: 61分 → 1.01時間 → 切り上げで2時間扱い)
-        let hours = ceil(Double(elapsedMinutes) / 60)
+        // 今使ってるカレンダー(地域設定)を取得
+        let calender = Calendar.current
+        // entryTimeから「時」だけ取り出す
+        let hour = calender.component(.hour, from: entryTime)
+        
+        let ratePerHour = (hour >= 8 && hour < 20) ? 200 : 100
+        
+        let hours = ceil(elapsedMinutes / 60)
         // 時間数 × 時間あたり料金 = 合計料金
         let fee = hours * Double(ratePerHour)
         
         let remainingMinutes = (hours * 60) - elapsedMinutes
+        
+        let shouldShowAlert = remainingMinutes <= 5
+        
         
         ZStack {
             Color.black.ignoresSafeArea()
@@ -40,14 +52,30 @@ struct ContentView: View {
                 // $をつけることで「entryTimeと値を連動(バインディング)させる」という意味になる
                 DatePicker("入庫時間", selection: $entryTime)
                     .tint(Color.white)
+                
+                Slider(value: $adjustmentMinutes, in: -15...15, step: 1)
+                
+                Text("補正: \(Int(adjustmentMinutes))分")
+                
+                Button("アラートテスト") {
+                    showAlert = true
+                    
+                }
+                .padding()
+                .foregroundStyle(Color.white)
             }
-            .padding()
-            .foregroundStyle(Color.white)
+            .preferredColorScheme(.dark)
+            .alert("まもなく値上がりします",isPresented: $showAlert) {
+                Button("OK") {}
+            }
+            message: {
+                Text("あと\(Int(remainingMinutes))分で料金が上がります")
+            }
         }
-        .preferredColorScheme(.dark)
     }
 }
-#Preview {
+ #Preview {
         ContentView()
     }
 
+ 

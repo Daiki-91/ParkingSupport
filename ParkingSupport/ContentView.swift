@@ -17,6 +17,9 @@ struct ContentView: View {
     // 計算結果ではなく画面固有の状態なので、ViewModelではなくここで管理
     @State private var showAlert = false
     
+    // 既にアラートを表示したかどうかのフラグ(何度も表示されるのを防ぐ)
+    @State private var hasAlerted = false
+    
     // 1秒ごとに時刻を更新するためのタイマー
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -59,7 +62,17 @@ struct ContentView: View {
             // 1秒ごとにcurrentTimeを更新し、画面を再計算させる
             .onReceive(timer) { _ in
                 viewModel.currentTime = Date()
+                
+                if viewModel.remainingMinutes <= 5 && !hasAlerted {
+                    showAlert = true
+                    hasAlerted = true
+                }
             }
+            
+            .onChange(of: viewModel.entryTime) {
+                hasAlerted = false
+            }
+            
             .alert("まもなく値上がりします", isPresented: $showAlert) {
                 Button("OK") {}
             } message: {

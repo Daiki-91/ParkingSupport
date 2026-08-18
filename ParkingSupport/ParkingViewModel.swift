@@ -14,6 +14,7 @@ class ParkingViewModel: ObservableObject {
     @Published var entryTime = Date() // 入庫時刻(初期値は今の時刻)
     @Published var adjustmentMinutes: Double = 0 // 補正分数(-15〜+15分を想定)
     @Published var currentTime = Date() // 「今の時刻」。Timerで1秒ごとに更新される
+    @Published var alertThresholdMinutes: Double = 5  // 何分前に通知するか(デフォルト5分)
     
     // 経過時間(分)を計算して返す
     // マイナスにならないよう、下限を0に制限している(補正スライダーの誤操作対策)

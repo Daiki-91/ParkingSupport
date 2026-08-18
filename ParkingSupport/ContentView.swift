@@ -50,6 +50,10 @@ struct ContentView: View {
                 
                 Text("補正: \(Int(viewModel.adjustmentMinutes))分")
                 
+                Text("通知タイミング: \(Int(viewModel.alertThresholdMinutes))分前")
+
+                Slider(value: $viewModel.alertThresholdMinutes, in: 1...30, step: 1)
+                
                 // アラート表示のテスト用ボタン(本来は自動発火が理想、今後の課題)
                 Button("アラートテスト") {
                     showAlert = true
@@ -63,7 +67,7 @@ struct ContentView: View {
             .onReceive(timer) { _ in
                 viewModel.currentTime = Date()
                 
-                if viewModel.remainingMinutes <= 5 && !hasAlerted {
+                if viewModel.remainingMinutes <= Int(viewModel.alertThresholdMinutes) && !hasAlerted {
                     showAlert = true
                     hasAlerted = true
                 }

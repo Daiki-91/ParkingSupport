@@ -11,7 +11,8 @@ import SwiftUI
 struct ParkingSupportApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            // アプリ起動時、最初に表示する画面をTopView(スプラッシュ画面)に設定
+            TopView()
         }
     }
 }

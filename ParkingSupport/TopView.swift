@@ -15,7 +15,9 @@ struct TopView: View {
     var body: some View {
         if isActive {
             // 一定時間経過後、計算画面へ遷移
-            ContentView()
+            NavigationStack {
+                InputMethodView()
+            }
         } else {
             // ロゴを表示するスプラッシュ画面本体
             ZStack {

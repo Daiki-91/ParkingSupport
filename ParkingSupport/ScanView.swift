@@ -55,11 +55,39 @@ struct ScanView: View {
                 observation.topCandidates(1).first?.string
             }
             
+            // [12]番目(60分／ 110円が入ってる行)だけ、文字を1個ずつ数値化して確認する
+            if recognizedStrings.indices.contains(12) {
+                let target = recognizedStrings[12]
+                for scalar in target.unicodeScalars {
+                    
+                    // 各文字を「文字そのもの」と「内部コード(16進数)」のセットで出力
+                    print("文字: \(scalar) / コード: \(String(format: "%04X", scalar.value))")
+                }
+            }
             
             // 認識結果を、画面表示用の変数に反映する(改行区切りでまとめる)
             DispatchQueue.main.async {
                 recognizedText = recognizedStrings.joined(separator: "\n")
+                
+                let pricePattern = #/\d{1,2}分[／/]\s*\d+円/#
+                
+                // recognizedStrings(OCRが認識した行の配列)からpricePatternに一致する行だけを取り出す
+                let priceLines = recognizedStrings.filter { line in
+                    
+                    // 「lineの中にこのパターンに一致する部分があるか」をBool値で返す
+                    line.contains(pricePattern)
+                    
+                }
+                
+                // デバッグ用:認識された全ての行を、1行ずつ番号付きで確認する
+                for (index, line) in recognizedStrings.enumerated() {
+                    print("[\(index)] \(line)")
+                }
+                
+                // 確認用に、絞り込めた結果をコンソールに出力
+                print("料金っぽい行:", priceLines)
             }
+                
         }
         
         request.recognitionLanguages = ["ja", "en"]

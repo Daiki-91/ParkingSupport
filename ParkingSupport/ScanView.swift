@@ -117,7 +117,29 @@ struct ScanView: View {
                     // 1組ずつ、parkingRatesの末尾に追加していく
                     parkingRates.append((time, normalizedPrice))
                 }
-                
+                if let maxFeeIndex = recognizedStrings.firstIndex(where: { $0.contains("最大料金") }) {
+                    
+                    // 前後の行の候補を集める(存在する場合のみ)
+                    var nearbyLines: [String] = []
+                    
+                    // 1個前の行があれば追加
+                    if maxFeeIndex > 0 {
+                        nearbyLines.append(recognizedStrings[maxFeeIndex - 1])
+                    }
+                    
+                    // 1個後の行があれば追加
+                    if maxFeeIndex < recognizedStrings.count - 1 {
+                        nearbyLines.append(recognizedStrings[maxFeeIndex + 1])
+                    }
+                    
+                    // 前後の候補の中から、金額パターンにマッチする行を探す
+                    let maxFeePattern = #/\d+[,]\d+円/#
+                    let maxFeeLine = nearbyLines.compactMap { line in
+                        line.firstMatch(of: maxFeePattern)?.output
+                    }.first
+                    
+                    print("最大料金:", maxFeeLine ?? "見つかりませんでした")
+                }
                 // 確認用に、完成したペアの配列をコンソールに出力する
                 print("料金ペア:", parkingRates)
                 

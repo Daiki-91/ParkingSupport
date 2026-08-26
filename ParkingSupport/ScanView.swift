@@ -10,9 +10,14 @@ import PhotosUI
 import Vision
 
 struct ScanView: View {
-    @State private var selectedItem: PhotosPickerItem?  // ユーザーが選んだ写真(選択前はnil)
-    @State private var selectedImage: Image?             // 画面に表示する用の画像
-    @State private var recognizedText: String = ""       // OCRで認識した文字列をまとめて表示する用
+    @StateObject private var viewModel = ParkingViewModel()
+    // ユーザーが選んだ写真(選択前はnil)
+    @State private var selectedItem: PhotosPickerItem?
+    // 画面に表示する用の画像
+    @State private var selectedImage: Image?
+    // 画面に表示する用の画像
+    @State private var recognizedText: String = ""
+    // OCRで認識した文字列をまとめて表示する用
     @State private var parkingRates: [(String, String)] = []
     @State private var navigateToConfirm = false
     
@@ -38,9 +43,9 @@ struct ScanView: View {
             // OCRの認識結果をそのまま画面にも表示(確認用)
             Text(recognizedText)
                 .padding()
-            
+            // ← viewModelを渡す
             NavigationLink(
-                destination: ConfirmView(parkingRates: parkingRates),
+                destination: ConfirmView(viewModel: viewModel, parkingRates: parkingRates),
                 isActive: $navigateToConfirm) {
                     
                 EmptyView()

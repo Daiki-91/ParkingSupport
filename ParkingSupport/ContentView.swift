@@ -10,16 +10,13 @@ import Combine
 
 struct ContentView: View {
    
-    // ViewModelのインスタンス。料金計算などのロジックは全てこちらに委譲している
-    @StateObject private var viewModel = ParkingViewModel()
-    
+    // 自分で作らず、外から受け取る形に変更
+    @ObservedObject var viewModel: ParkingViewModel
     // アラート(次の段階まであと5分等の通知)を表示するかどうかのスイッチ
     // 計算結果ではなく画面固有の状態なので、ViewModelではなくここで管理
     @State private var showAlert = false
-    
     // 既にアラートを表示したかどうかのフラグ(何度も表示されるのを防ぐ)
     @State private var hasAlerted = false
-    
     // 1秒ごとに時刻を更新するためのタイマー
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -86,7 +83,7 @@ struct ContentView: View {
     }
 }
  #Preview {
-        ContentView()
+        ContentView(viewModel: ParkingViewModel())
     }
 
  

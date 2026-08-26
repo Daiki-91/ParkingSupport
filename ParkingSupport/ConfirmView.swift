@@ -8,8 +8,10 @@
 import SwiftUI
 
 struct ConfirmView: View {
-    // ScanViewから渡される「時間帯・単価」のペア一覧
+    @ObservedObject var viewModel: ParkingViewModel   // 自分では作らず、外から受け取る
     let parkingRates: [(String, String)]
+    
+    @State private var navigateToContent = false
     
     var body: some View {
         ZStack {
@@ -23,22 +25,39 @@ struct ConfirmView: View {
                     .padding(.top)
                 
                 if parkingRates.isEmpty {
-                    // 何も読み取れなかった場合の表示
                     Text("料金体系を読み取れませんでした")
                         .foregroundStyle(.gray)
                 } else {
-                    // idを付けて、SwiftUIのListが1つずつ区別できるようにする
                     List(Array(parkingRates.enumerated()), id: \.offset) { _, rate in
                         VStack(alignment: .leading) {
-                            Text(rate.0)  // 時間帯
+                            Text(rate.0)
                                 .font(.headline)
                                 .foregroundStyle(.white)
-                            Text(rate.1)  // 単価
+                            Text(rate.1)
                                 .foregroundStyle(.gray)
                         }
                         .listRowBackground(Color.black)
                     }
-                    .scrollContentBackground(.hidden)  // Listのデフォルト背景を消して、黒背景を活かす
+                    .scrollContentBackground(.hidden)
+                }
+                
+                // 確定ボタン。ViewModelに料金ルールを反映してから、計算画面へ遷移する
+                Button("この内容で確定") {
+                    viewModel.applyRates(parkingRates)
+                    navigateToContent = true
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.white)
+                .foregroundStyle(.black)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+                
+                NavigationLink(
+                    destination: ContentView(viewModel: viewModel),
+                    isActive: $navigateToContent
+                ) {
+                    EmptyView()
                 }
             }
             .padding()
@@ -48,6 +67,5 @@ struct ConfirmView: View {
 }
 
 #Preview {
-    // プレビュー用にダミーデータを渡す
-    ConfirmView(parkingRates: [("8:00~22:00", "20分／330円"), ("22:00~8:00", "60分/ 110円")])
+    ConfirmView(viewModel: ParkingViewModel(), parkingRates: [("8:00~22:00", "20分／330円"), ("22:00~8:00", "60分／110円")])
 }

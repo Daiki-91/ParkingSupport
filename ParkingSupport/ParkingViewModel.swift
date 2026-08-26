@@ -7,44 +7,89 @@
 import Foundation
 import Combine
 
-// 料金計算に関するロジックをまとめたViewModel
-// ContentView(見た目)から計算処理を切り離すことで、役割分担を明確にしている
+// 1つの時間帯における料金ルールを表す型
+struct RateEntry {
+    let startHour: Int      // 開始時刻(例: 8)
+    let endHour: Int        // 終了時刻(例: 22)
+    let unitMinutes: Int    // 何分ごとの区切りか(例: 20)
+    let unitPrice: Int      // その区切りごとの料金(例: 330)
+}
 
 class ParkingViewModel: ObservableObject {
-    @Published var entryTime = Date() // 入庫時刻(初期値は今の時刻)
-    @Published var adjustmentMinutes: Double = 0 // 補正分数(-15〜+15分を想定)
-    @Published var currentTime = Date() // 「今の時刻」。Timerで1秒ごとに更新される
-    @Published var alertThresholdMinutes: Double = 5  // 何分前に通知するか(デフォルト5分)
+    @Published var entryTime = Date()
+    @Published var adjustmentMinutes: Double = 0
+    @Published var currentTime = Date()
+    //値上がり何分前に通知するか
+    @Published var alertThresholdMinutes: Double = 5
+    // OCRから読み取った料金ルールを保持する配列
+    @Published var rateEntries: [RateEntry] = []
     
-    // 経過時間(分)を計算して返す
-    // マイナスにならないよう、下限を0に制限している(補正スライダーの誤操作対策)
     var elapsedMinutes: Double {
         let elapsedSeconds = currentTime.timeIntervalSince(entryTime)
         return max(0, elapsedSeconds / 60 + adjustmentMinutes)
     }
     
-    // 現在の時間帯に応じた、1時間あたりの料金(円)を返す
-    // 8時〜20時未満: 昼間料金(200円)、それ以外: 夜間料金(100円)
-    var ratePerHour: Int {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: entryTime)
-        if hour >= 8 && hour < 20 {
-            return 200
-        } else {
-            return 100
+    // ConfirmViewから渡された「時間帯・単価」の文字列ペアを、
+    // 計算に使える数値データ(RateEntry)に変換して保存する
+    func applyRates(_ rawRates: [(String, String)]) {
+        rateEntries = rawRates.compactMap { time, price in
+            // "8:00~22:00" のような文字列を "~" で分割する
+            let timeParts = time.components(separatedBy: "~")
+            guard timeParts.count == 2 else { return nil }
+            
+            // それぞれ ":" で分割して、時の部分だけ取り出す
+            guard let startHour = Int(timeParts[0].components(separatedBy: ":")[0]),
+                  let endHour = Int(timeParts[1].components(separatedBy: ":")[0]) else {
+                return nil
+            }
+            
+            // "20分／330円" のような文字列から、「分」「円」を取り除いて数値だけにする
+            let cleanedPrice = price.replacingOccurrences(of: "分", with: "")
+                                     .replacingOccurrences(of: "円", with: "")
+            let priceParts = cleanedPrice.components(separatedBy: "／")
+            guard priceParts.count == 2,
+                  let unitMinutes = Int(priceParts[0]),
+                  let unitPrice = Int(priceParts[1]) else {
+                return nil
+            }
+            
+            return RateEntry(startHour: startHour, endHour: endHour, unitMinutes: unitMinutes, unitPrice: unitPrice)
         }
     }
     
-    // 現在の合計料金を計算して返す
-    // 経過時間がどれだけ短くても、最低1時間分の料金が発生する前提で計算(hoursの下限を1に制限)
-    var fee: Int {
-        let hours = max(1, ceil(elapsedMinutes / 60))
-        return Int(hours * Double(ratePerHour))
+    // 現在時刻(entryTime)が、どのRateEntryに該当するかを探す
+    var currentRate: RateEntry? {
+        let hour = Calendar.current.component(.hour, from: entryTime)
+        
+        return rateEntries.first { rate in
+            if rate.startHour < rate.endHour {
+                // 例: 8:00~22:00 のような、日をまたがない時間帯
+                return hour >= rate.startHour && hour < rate.endHour
+            } else {
+                // 例: 22:00~8:00 のような、日をまたぐ時間帯
+                return hour >= rate.startHour || hour < rate.endHour
+            }
+        }
     }
     
-    // 次の料金段階(次の1時間の壁)まで、あと何分かを計算して返す
+    var fee: Int {
+        guard let rate = currentRate else {
+            // 料金ルールが1つも読み取れなかった場合の保険(仮の固定料金)
+            let hours = max(1, ceil(elapsedMinutes / 60))
+            return Int(hours * 200)
+        }
+        // 経過分数を、単位分数(例: 20分)で割って「何区切り分か」を出す
+        let units = max(1, ceil(elapsedMinutes / Double(rate.unitMinutes)))
+        return Int(units) * rate.unitPrice
+    }
+    
     var remainingMinutes: Int {
-        let hours = max(1, ceil(elapsedMinutes / 60))
-        return Int((hours * 60) - elapsedMinutes)
+        guard let rate = currentRate else {
+            let hours = max(1, ceil(elapsedMinutes / 60))
+            return Int((hours * 60) - elapsedMinutes)
+        }
+        let units = max(1, ceil(elapsedMinutes / Double(rate.unitMinutes)))
+        let nextBoundary = units * Double(rate.unitMinutes)
+        return Int(nextBoundary - elapsedMinutes)
     }
 }
